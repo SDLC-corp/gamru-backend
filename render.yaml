@@ -13,16 +13,17 @@
 #   4. Add a managed Postgres database in Render (or use Aiven/Neon/etc.)
 #      and copy its host/port/user/password/name into the DB_* vars.
 #
-# WHY `npm run build` + `npm start` (matches Render's standard
-# "Build Command / Start Command" pattern):
+# WHY `npm run build` + `node src/server.ts`:
 #   • `npm run build`  →  package.json: `tsc && cpSync(templates)`
-#                         compiles src/*.ts  →  dist/*.js
+#                         compiles src/*.ts  →  dist/*.js (excluding
+#                         src/server.ts itself — see tsconfig "exclude")
 #                         and copies src/templates/*.html → dist/templates/
-#   • `npm start`      →  package.json: `node dist/server.js`
-#
-# DO NOT use `node src/server.ts` as the start command —
-# Node.js cannot execute TypeScript files directly; you'll get
-# "Unknown file extension .ts" and the deploy will crash.
+#   • Start Command    →  `node src/server.ts`
+#                         src/server.ts is a CommonJS shim (no TS syntax,
+#                         no ESM imports) that just requires the compiled
+#                         dist/main.js. Node 24+ strips types from .ts
+#                         files natively, so this works without ts-node.
+#                         The real server entry lives in src/main.ts.
 #
 # NOTES:
 #   • Render auto-injects PORT for web services — do NOT hardcode it.
@@ -53,8 +54,8 @@ services:
       npm run build &&
       npx sequelize-cli db:migrate
 
-    # Runs the compiled JS from dist/ (package.json: "start": "node dist/server.js")
-    startCommand: npm start
+    # src/server.ts is a CJS shim that requires dist/main.js (see comment above).
+    startCommand: node src/server.ts
 
     healthCheckPath: /api/health
 
