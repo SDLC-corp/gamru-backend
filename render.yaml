@@ -5,7 +5,7 @@
 # regardless of package.json script contents.
 services:
   - type: web
-    name: hamara-engage-backend
+    name: gamru-backend
     runtime: node
     plan: free
     region: singapore
