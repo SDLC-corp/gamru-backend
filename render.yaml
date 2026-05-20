@@ -9,7 +9,7 @@ services:
     runtime: node
     plan: free
     region: singapore
-    branch: main
+    branch: staging
 
     # Compile TS -> dist/ and copy runtime HTML mail templates
     # (tsc does not copy non-.ts files).
