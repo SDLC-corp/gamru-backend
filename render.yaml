@@ -1,0 +1,67 @@
+# Render Blueprint — Gamru Engage backend
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Commands are explicit (not via npm scripts) so the deploy works
+# regardless of package.json script contents.
+services:
+  - type: web
+    name: hamara-engage-backend
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+
+    # Compile TS -> dist/ and copy runtime HTML mail templates
+    # (tsc does not copy non-.ts files).
+    buildCommand: >-
+      npm ci &&
+      npx tsc &&
+      node -e "require('fs').cpSync('src/templates','dist/templates',{recursive:true})"
+
+    # Run migrations once before the new version goes live.
+    preDeployCommand: npx sequelize-cli db:migrate
+
+    startCommand: node dist/server.js
+
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+
+      # --- Database (Aiven). Mark secrets sync:false -> set in dashboard ---
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      # SSL auto-enables for non-localhost hosts; uncomment to force.
+      # - key: DB_SSL
+      #   value: "true"
+
+      # --- Auth ---
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 1d
+
+      # --- Mail ---
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        sync: false
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false

@@ -1,0 +1,45 @@
+import {
+  DataTypes,
+  Model,
+  InferAttributes,
+  InferCreationAttributes,
+  CreationOptional,
+} from "sequelize";
+import sequelize from "../../../config/db";
+
+export class Sport extends Model<
+  InferAttributes<Sport>,
+  InferCreationAttributes<Sport>
+> {
+  declare id: CreationOptional<string>;
+  declare name: string;
+
+  declare readonly created_at: CreationOptional<Date>;
+  declare readonly updated_at: CreationOptional<Date>;
+}
+
+Sport.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    name: {
+      type: DataTypes.STRING(150),
+      allowNull: false,
+    },
+    created_at: DataTypes.DATE,
+    updated_at: DataTypes.DATE,
+  },
+  {
+    sequelize,
+    tableName: "sports",
+    modelName: "Sport",
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: "updated_at",
+  }
+);
+
+export default Sport;
