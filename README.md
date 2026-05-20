@@ -1,1 +1,0 @@
-# gamru-backend
