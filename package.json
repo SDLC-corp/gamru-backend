@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Node.js TypeScript backend with Sequelize ORM",
   "main": "dist/server.js",
-  "type": "commonjs",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc && node -e \"require('fs').cpSync('src/templates','dist/templates',{recursive:true})\"",
