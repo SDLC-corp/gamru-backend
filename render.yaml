@@ -13,16 +13,29 @@
 #   4. Add a managed Postgres database in Render (or use Aiven/Neon/etc.)
 #      and copy its host/port/user/password/name into the DB_* vars.
 #
+# WHY `npm run build` + `npm start` (matches Render's standard
+# "Build Command / Start Command" pattern):
+#   • `npm run build`  →  package.json: `tsc && cpSync(templates)`
+#                         compiles src/*.ts  →  dist/*.js
+#                         and copies src/templates/*.html → dist/templates/
+#   • `npm start`      →  package.json: `node dist/server.js`
+#
+# DO NOT use `node src/server.ts` as the start command —
+# Node.js cannot execute TypeScript files directly; you'll get
+# "Unknown file extension .ts" and the deploy will crash.
+#
 # NOTES:
 #   • Render auto-injects PORT for web services — do NOT hardcode it.
 #     The app already reads `process.env.PORT || 5000`.
-#   • DB migrations run as part of buildCommand so they execute on every
-#     deploy, regardless of plan tier (preDeployCommand requires a paid
+#   • `npm ci` on Render installs devDependencies too, so `tsc` and
+#     `sequelize-cli` are available during build.
+#   • DB migrations run inside buildCommand so they execute on every
+#     deploy regardless of plan tier (preDeployCommand needs a paid
 #     plan). Sequelize tracks applied migrations in SequelizeMeta, so
 #     re-running is safe / idempotent.
-#   • Render's free-tier disk is ephemeral — files under `uploads/` will
-#     NOT survive a redeploy. For persistent uploads, mount a disk
-#     (paid plan) or move media to S3 / R2 / Cloudinary.
+#   • Render's free-tier disk is ephemeral — files under `uploads/`
+#     will NOT survive a redeploy. For persistent uploads, mount a
+#     disk (paid plan) or move media to S3 / R2 / Cloudinary.
 # ─────────────────────────────────────────────────────────────────────
 
 services:
@@ -34,15 +47,14 @@ services:
     branch: main
     autoDeploy: true
 
-    # tsc -> dist/   +   copy non-TS email templates   +   migrate DB
-    # (tsc does not move .html files, so we cpSync them manually.)
+    # 1) install deps  2) compile TS + copy email templates  3) run migrations
     buildCommand: >-
       npm ci &&
-      npx tsc &&
-      node -e "require('fs').cpSync('src/templates','dist/templates',{recursive:true})" &&
+      npm run build &&
       npx sequelize-cli db:migrate
 
-    startCommand: node dist/server.js
+    # Runs the compiled JS from dist/ (package.json: "start": "node dist/server.js")
+    startCommand: npm start
 
     healthCheckPath: /api/health
 
