@@ -1,37 +1,60 @@
+# ─────────────────────────────────────────────────────────────────────
 # Render Blueprint — Gamru Engage backend
 # Docs: https://render.com/docs/blueprint-spec
 #
-# Commands are explicit (not via npm scripts) so the deploy works
-# regardless of package.json script contents.
+# This file lives at the repo root for `gamru-backend`. Render reads it
+# when you create a "Blueprint" from this repository.
+#
+# IMPORTANT — first-time setup:
+#   1. Push this repo to GitHub/GitLab.
+#   2. In Render dashboard: New + → Blueprint → pick this repo.
+#   3. Fill in every env var below that is marked `sync: false`
+#      (database creds, JWT secrets, mail SMTP creds).
+#   4. Add a managed Postgres database in Render (or use Aiven/Neon/etc.)
+#      and copy its host/port/user/password/name into the DB_* vars.
+#
+# NOTES:
+#   • Render auto-injects PORT for web services — do NOT hardcode it.
+#     The app already reads `process.env.PORT || 5000`.
+#   • DB migrations run as part of buildCommand so they execute on every
+#     deploy, regardless of plan tier (preDeployCommand requires a paid
+#     plan). Sequelize tracks applied migrations in SequelizeMeta, so
+#     re-running is safe / idempotent.
+#   • Render's free-tier disk is ephemeral — files under `uploads/` will
+#     NOT survive a redeploy. For persistent uploads, mount a disk
+#     (paid plan) or move media to S3 / R2 / Cloudinary.
+# ─────────────────────────────────────────────────────────────────────
+
 services:
   - type: web
     name: gamru-backend
     runtime: node
     plan: free
     region: singapore
-    branch: staging
+    branch: main
+    autoDeploy: true
 
-    # Compile TS -> dist/ and copy runtime HTML mail templates
-    # (tsc does not copy non-.ts files).
+    # tsc -> dist/   +   copy non-TS email templates   +   migrate DB
+    # (tsc does not move .html files, so we cpSync them manually.)
     buildCommand: >-
       npm ci &&
       npx tsc &&
-      node -e "require('fs').cpSync('src/templates','dist/templates',{recursive:true})"
-
-    # Run migrations once before the new version goes live.
-    preDeployCommand: npx sequelize-cli db:migrate
+      node -e "require('fs').cpSync('src/templates','dist/templates',{recursive:true})" &&
+      npx sequelize-cli db:migrate
 
     startCommand: node dist/server.js
 
     healthCheckPath: /api/health
 
     envVars:
+      # ── Runtime ────────────────────────────────────────────────────
+      - key: NODE_VERSION
+        value: 20.18.0
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 5000
+      # PORT: intentionally omitted — Render assigns it automatically.
 
-      # --- Database (Aiven). Mark secrets sync:false -> set in dashboard ---
+      # ── Database (set these in the Render dashboard) ───────────────
       - key: DB_HOST
         sync: false
       - key: DB_PORT
@@ -42,11 +65,13 @@ services:
         sync: false
       - key: DB_NAME
         sync: false
-      # SSL auto-enables for non-localhost hosts; uncomment to force.
-      # - key: DB_SSL
-      #   value: "true"
+      # SSL is auto-enabled for non-localhost hosts in src/config/db.ts,
+      # but we force it on here so cloud Postgres (Aiven/Neon/Render PG)
+      # never connects in plaintext.
+      - key: DB_SSL
+        value: "true"
 
-      # --- Auth ---
+      # ── Auth / JWT ────────────────────────────────────────────────
       - key: JWT_ACCESS_SECRET
         sync: false
       - key: JWT_REFRESH_SECRET
@@ -54,7 +79,7 @@ services:
       - key: JWT_ACCESS_EXPIRES_IN
         value: 1d
 
-      # --- Mail ---
+      # ── Mail / SMTP (Nodemailer) ──────────────────────────────────
       - key: MAIL_HOST
         sync: false
       - key: MAIL_PORT
