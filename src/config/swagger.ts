@@ -1,28 +1,12 @@
-import { allPaths, allTags } from "../docs";
-
 /**
- * Swagger spec is now assembled programmatically from per-module
- * `src/docs/*.docs.ts` files instead of scraped from JSDoc comments
- * on route files. To document a new endpoint, add its definition to
- * the matching docs file (or create a new one and register it in
- * `src/docs/index.ts`).
+ * Re-exports the OpenAPI spec built in `src/docs/swagger.js`.
+ *
+ * The spec is auto-derived: each Express router is walked, and the metadata
+ * attached by the validate / role / auth / serviceAuth / upload middlewares
+ * is read back to produce the OpenAPI document. See `src/docs/swagger.js`
+ * for the introspection logic and the ROUTE_GROUPS list.
  */
-export const swaggerSpec = {
-  openapi: "3.0.0",
-  info: {
-    title: "Backend API",
-    version: "1.0.0",
-    description: "Node.js TypeScript REST API with Sequelize ORM",
-  },
-  components: {
-    securitySchemes: {
-      bearerAuth: {
-        type: "http",
-        scheme: "bearer",
-        bearerFormat: "JWT",
-      },
-    },
-  },
-  tags: allTags,
-  paths: allPaths,
-};
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { swaggerSpec: spec } = require("../docs/swagger");
+
+export const swaggerSpec: Record<string, unknown> = spec;

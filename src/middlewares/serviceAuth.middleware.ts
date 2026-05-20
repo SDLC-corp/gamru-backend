@@ -1,10 +1,14 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
+
+interface AnnotatedServiceAuth extends RequestHandler {
+  __requiresServiceKey?: true;
+}
 
 /**
  * Guards service-to-service endpoints (gamify-engage → gamru). Both
  * backends share `SERVICE_SHARED_KEY`; callers send it as `x-service-key`.
  */
-export const serviceAuth = (
+export const serviceAuth: AnnotatedServiceAuth = (
   req: Request,
   res: Response,
   next: NextFunction
@@ -24,3 +28,5 @@ export const serviceAuth = (
   }
   next();
 };
+
+serviceAuth.__requiresServiceKey = true;

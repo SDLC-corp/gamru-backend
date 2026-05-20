@@ -1,7 +1,11 @@
 import fs from "fs";
 import path from "path";
 import multer from "multer";
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
+
+interface AnnotatedUpload extends RequestHandler {
+  __multipartField?: string;
+}
 
 // All uploaded media is stored under <project root>/uploads
 export const UPLOAD_DIR = path.resolve(process.cwd(), "uploads");
@@ -47,7 +51,7 @@ const uploadImage = multer({
  * Wraps the multer single-file middleware so upload errors (wrong type,
  * file too large) return a clean 422 instead of a generic 500.
  */
-export const uploadImageSafe = (
+export const uploadImageSafe: AnnotatedUpload = (
   req: Request,
   res: Response,
   next: NextFunction
@@ -70,3 +74,5 @@ export const uploadImageSafe = (
     next();
   });
 };
+
+uploadImageSafe.__multipartField = "image";
