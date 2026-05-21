@@ -39,6 +39,13 @@ export const paginatePlayers = async (
       search: req.query.search as string | undefined,
       status: req.query.status as string | undefined,
       country: req.query.country as string | undefined,
+      field: req.query.field as
+        | "all"
+        | "name"
+        | "email"
+        | "username"
+        | "player_id"
+        | undefined,
     });
     successResponse(res, 200, "Players fetched successfully", data);
   } catch (error) {

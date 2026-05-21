@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import UserRepository from "../model/user.repository";
+import UserRepository, { type UserFilter } from "../model/user.repository";
 import bcrypt from "bcryptjs";
 
 import { AppError } from "../../../utils/AppError";
@@ -82,8 +82,12 @@ export const getMeService = async (id: string) => {
   return user;
 };
 
-export const paginateUsersService = async (page: number, limit: number) => {
-  return UserRepository.paginateUsers(page, limit);
+export const paginateUsersService = async (
+  page: number,
+  limit: number,
+  filter: UserFilter = {}
+) => {
+  return UserRepository.paginateUsers(page, limit, filter);
 };
 
 export const deleteUserService = async (id: string) => {

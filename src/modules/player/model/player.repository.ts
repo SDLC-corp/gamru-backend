@@ -5,11 +5,26 @@ import PlayerCampaignHistory from "./player-campaign-history.model";
 import PlayerReward from "./player-reward.model";
 import PlayerLog from "./player-log.model";
 
+export type PlayerSearchField =
+  | "all"
+  | "name"
+  | "email"
+  | "username"
+  | "player_id";
+
 export interface PlayerFilter {
   search?: string;
   status?: string;
   country?: string;
+  field?: PlayerSearchField;
 }
+
+const PLAYER_SEARCH_FIELDS: Record<Exclude<PlayerSearchField, "all">, string> = {
+  name: "name",
+  email: "email",
+  username: "username",
+  player_id: "player_id",
+};
 
 class PlayerRepository extends BaseRepository<Player> {
   constructor() {
@@ -23,12 +38,17 @@ class PlayerRepository extends BaseRepository<Player> {
     if (filter.country) where.country = filter.country;
 
     if (filter.search) {
-      where[Op.or as unknown as string] = [
-        { player_id: { [Op.iLike]: `%${filter.search}%` } },
-        { username: { [Op.iLike]: `%${filter.search}%` } },
-        { name: { [Op.iLike]: `%${filter.search}%` } },
-        { email: { [Op.iLike]: `%${filter.search}%` } },
-      ];
+      const like = { [Op.iLike]: `%${filter.search}%` };
+      if (filter.field && filter.field !== "all" && PLAYER_SEARCH_FIELDS[filter.field]) {
+        where[PLAYER_SEARCH_FIELDS[filter.field]] = like;
+      } else {
+        where[Op.or as unknown as string] = [
+          { player_id: like },
+          { username: like },
+          { name: like },
+          { email: like },
+        ];
+      }
     }
 
     return where as WhereOptions;

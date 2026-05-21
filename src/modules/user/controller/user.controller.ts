@@ -136,7 +136,16 @@ export const paginateUsers = async (req: AuthRequest, res: Response) => {
     const page = Number(req.query.page || 1);
     const limit = Number(req.query.limit || 10);
 
-    const data = await paginateUsersService(page, limit);
+    const data = await paginateUsersService(page, limit, {
+      search: req.query.search as string | undefined,
+      field: req.query.field as
+        | "all"
+        | "name"
+        | "email"
+        | "username"
+        | "mobile"
+        | undefined,
+    });
     return successResponse(res, 200, "Users fetched", data);
   } catch (error) {
     if (error instanceof AppError) {
