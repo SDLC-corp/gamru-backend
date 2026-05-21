@@ -15,7 +15,6 @@ import {
 } from "../service/player.service";
 import { errorResponse, successResponse } from "../../../utils/responseHandler";
 import { AppError } from "../../../utils/AppError";
-import { getRequestClient } from "../../../middlewares/clientAuth.middleware";
 
 const handle = (res: Response, error: unknown, fallback: string): Response => {
   if (error instanceof AppError) {
@@ -83,9 +82,11 @@ export const addPlayerXpByEmail = async (
 ) => {
   try {
     const { email, amount } = req.body;
-    const client = getRequestClient(req);
-    const actor = client ? `${client.slug}-sync` : req.user?.email ?? null;
-    const data = await addPlayerXpByEmailService(email, amount, actor, client);
+    const data = await addPlayerXpByEmailService(
+      email,
+      amount,
+      req.user?.email ?? null
+    );
     successResponse(res, 200, "Player XP updated successfully", data);
   } catch (error) {
     handle(res, error, "Failed to update player XP");

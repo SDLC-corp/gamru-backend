@@ -17,7 +17,6 @@ import {
 } from "../../integration/service/gam.engine";
 import { applyXpToPlayer } from "../../integration/service/integration.service";
 import { gamificationModels } from "../../gamification/shared/gamification.model";
-import type Client from "../../client/model/client.model";
 
 type Json = Record<string, unknown>;
 
@@ -203,8 +202,7 @@ export const getPlayerByEmailService = async (email: string) => {
 export const addPlayerXpByEmailService = async (
   email: string,
   amount: number,
-  actor?: string | null,
-  client?: Client | null
+  actor?: string | null
 ) => {
   const player = await playerRepository.findOne({ email });
   if (!player) {
@@ -218,13 +216,11 @@ export const addPlayerXpByEmailService = async (
 
   const { player: updated, nextXp, progress } = await applyXpToPlayer(
     player,
-    delta,
-    client
+    delta
   );
 
   await playerLogRepository.create({
     player_id: player.id,
-    client_id: client?.id ?? null,
     action: "XP Adjusted",
     detail: `${delta > 0 ? "+" : ""}${delta} XP (total ${nextXp})${
       progress ? ` • Lvl ${progress.level} ${progress.rank_name}` : ""

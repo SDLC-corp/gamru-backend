@@ -18,7 +18,6 @@ export class GamXpTransaction extends Model<
 > {
   declare id: CreationOptional<string>;
   declare player_id: CreationOptional<string | null>;
-  declare client_id: CreationOptional<string | null>;
   declare event_id: string;
   declare event_type: string;
   declare external_id: CreationOptional<string | null>;
@@ -38,7 +37,6 @@ GamXpTransaction.init(
       primaryKey: true,
     },
     player_id: { type: DataTypes.UUID, allowNull: true },
-    client_id: { type: DataTypes.UUID, allowNull: true },
     event_id: { type: DataTypes.STRING(180), allowNull: false, unique: true },
     event_type: { type: DataTypes.STRING(60), allowNull: false },
     external_id: { type: DataTypes.STRING(120), allowNull: true },

@@ -21,7 +21,6 @@ export class ExternalAccount extends Model<
   declare external_id: string;
   declare player_id: CreationOptional<string | null>;
   declare email: CreationOptional<string | null>;
-  declare client_id: CreationOptional<string | null>;
 
   declare readonly created_at: CreationOptional<Date>;
   declare readonly updated_at: CreationOptional<Date>;
@@ -38,7 +37,6 @@ ExternalAccount.init(
     external_id: { type: DataTypes.STRING(120), allowNull: false },
     player_id: { type: DataTypes.UUID, allowNull: true },
     email: { type: DataTypes.STRING(180), allowNull: true },
-    client_id: { type: DataTypes.UUID, allowNull: true },
     created_at: DataTypes.DATE,
     updated_at: DataTypes.DATE,
   },

@@ -53,10 +53,6 @@ export class Player extends Model<
   declare custom_data: CreationOptional<Record<string, unknown> | null>;
   declare transactional_data: CreationOptional<Record<string, unknown> | null>;
 
-  /** Tenant introduced by — Client.id. Nullable for players created
-   *  by Gamru ops directly. First write wins; never auto-overwritten. */
-  declare client_id: CreationOptional<string | null>;
-
   declare readonly created_at: CreationOptional<Date>;
   declare readonly updated_at: CreationOptional<Date>;
 }
@@ -172,10 +168,6 @@ Player.init(
     },
     transactional_data: {
       type: DataTypes.JSONB,
-      allowNull: true,
-    },
-    client_id: {
-      type: DataTypes.UUID,
       allowNull: true,
     },
     created_at: DataTypes.DATE,

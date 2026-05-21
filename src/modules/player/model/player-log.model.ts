@@ -20,9 +20,6 @@ export class PlayerLog extends Model<
   declare action: string;
   declare detail: CreationOptional<string | null>;
   declare actor: CreationOptional<string | null>;
-  /** Tenant that triggered this log entry (Client.id). Nullable for
-   *  ops-driven actions. */
-  declare client_id: CreationOptional<string | null>;
 
   declare readonly created_at: CreationOptional<Date>;
   declare readonly updated_at: CreationOptional<Date>;
@@ -49,10 +46,6 @@ PlayerLog.init(
     },
     actor: {
       type: DataTypes.STRING(150),
-      allowNull: true,
-    },
-    client_id: {
-      type: DataTypes.UUID,
       allowNull: true,
     },
     created_at: DataTypes.DATE,

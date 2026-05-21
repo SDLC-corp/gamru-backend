@@ -36,7 +36,6 @@ const ROUTE_GROUPS = [
   { prefix: "/api/players", tag: "Players", router: require("../route/player.routes").default },
   { prefix: "/api/analytics", tag: "Analytics", router: require("../route/analytics.routes").default },
   { prefix: "/api/integration", tag: "Integration", router: require("../route/integration.routes").default },
-  { prefix: "/api/clients", tag: "Clients", router: require("../route/client.routes").default },
 ];
 
 // ── Path / parameter helpers ──────────────────────────────────────────────
@@ -103,8 +102,6 @@ function inspectRoute(route) {
     requiredRoles: null,
     requiresAuth: false,
     requiresServiceKey: false,
-    requiresClientAuth: false,
-    requiredScope: null,
     multipartField: null,
   };
   for (const layer of route.stack) {
@@ -116,8 +113,6 @@ function inspectRoute(route) {
     if (fn.__requiredRoles) meta.requiredRoles = fn.__requiredRoles;
     if (fn.__requiresAuth) meta.requiresAuth = true;
     if (fn.__requiresServiceKey) meta.requiresServiceKey = true;
-    if (fn.__requiresClientAuth) meta.requiresClientAuth = true;
-    if (fn.__requiredScope) meta.requiredScope = fn.__requiredScope;
     if (fn.__multipartField) meta.multipartField = fn.__multipartField;
   }
   return meta;
@@ -244,16 +239,7 @@ function buildOperation({ method, routePath, tag, meta, override }) {
 
   if (override?.description) op.description = override.description;
 
-  if (meta.requiresClientAuth) {
-    op.security = [{ clientId: [], clientSecret: [] }];
-    op.responses[401] = { description: "Unauthorized" };
-    if (meta.requiredScope) {
-      op.description =
-        (op.description ? op.description + "\n\n" : "") +
-        `Requires client scope: \`${meta.requiredScope}\`.`;
-      op.responses[403] = { description: "Forbidden — missing scope" };
-    }
-  } else if (meta.requiresServiceKey) {
+  if (meta.requiresServiceKey) {
     op.security = [{ serviceKey: [] }];
   } else if (meta.requiresAuth) {
     op.security = [{ bearerAuth: [] }];
@@ -380,16 +366,6 @@ const swaggerSpec = {
         type: "apiKey",
         in: "header",
         name: "x-service-key",
-      },
-      clientId: {
-        type: "apiKey",
-        in: "header",
-        name: "x-client-id",
-      },
-      clientSecret: {
-        type: "apiKey",
-        in: "header",
-        name: "x-client-secret",
       },
     },
   },

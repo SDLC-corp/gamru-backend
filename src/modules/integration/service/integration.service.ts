@@ -6,7 +6,6 @@ import {
 import Player from "../../player/model/player.model";
 import ExternalAccount from "../model/external-account.model";
 import GamXpTransaction from "../model/gam-xp-transaction.model";
-import Client from "../../client/model/client.model";
 import {
   loadLadder,
   resolveProgress,
@@ -23,13 +22,8 @@ export interface SyncEvent {
   /** Stable, globally-unique id used for idempotency. */
   event_id: string;
   event_type: SyncEventType;
-  /** The consuming platform's user id. */
+  /** The gamify-engage user id. */
   external_id: string;
-  /**
-   * Origin slug. When the client is authenticated via `clientAuth`, the
-   * slug is taken from the Client and this field is ignored. Kept on the
-   * payload for backward compatibility with legacy `x-service-key` calls.
-   */
   origin?: string;
   email?: string | null;
   /** XP delta for XP_AWARDED. */
@@ -51,19 +45,14 @@ export interface ApplyResult {
 }
 
 /**
- * Resolve (and lazily link) the Gamru Player behind a consumer's user.
- * Linking happens by email — the USER_REGISTERED push carries the email
- * and arrives right after the mirror user/player is created here.
- *
- * When `client` is supplied (the new clientAuth flow), every row written
- * is stamped with `client_id` so the admin UI can show "which Players
- * came from which platform" without joining on a freeform `origin` string.
+ * Resolve (and lazily link) the gamru Player behind a gamify user.
+ * Linking happens by email — the gamify USER_REGISTERED push carries the
+ * email and arrives right after the mirror user/player is created here.
  */
 const resolvePlayer = async (
   origin: string,
   externalId: string,
-  email?: string | null,
-  client?: Client | null
+  email?: string | null
 ): Promise<{ account: ExternalAccount; player: Player | null }> => {
   let account = await ExternalAccount.findOne({
     where: { origin, external_id: externalId },
@@ -84,21 +73,9 @@ const resolvePlayer = async (
       external_id: externalId,
       email: email ?? null,
       player_id: player?.id ?? null,
-      client_id: client?.id ?? null,
     });
-  } else {
-    const patch: Partial<ExternalAccount["_creationAttributes"]> = {};
-    if (player && account.player_id !== player.id) patch.player_id = player.id;
-    if (email && account.email !== email) patch.email = email;
-    if (client && account.client_id !== client.id) patch.client_id = client.id;
-    if (Object.keys(patch).length > 0) await account.update(patch);
-  }
-
-  // Stamp client ownership on the Player too (first writer wins; never
-  // overwrites an existing attribution so two clients can't fight over
-  // the same player).
-  if (client && player && !player.client_id) {
-    await player.update({ client_id: client.id });
+  } else if (player && account.player_id !== player.id) {
+    await account.update({ player_id: player.id, email: email ?? account.email });
   }
 
   return { account, player };
@@ -109,12 +86,10 @@ const grantLevelRewards = async (
   player: Player,
   prevXp: number,
   nextXp: number,
-  ladder: Awaited<ReturnType<typeof loadLadder>>,
-  client?: Client | null
+  ladder: Awaited<ReturnType<typeof loadLadder>>
 ): Promise<number> => {
   const rungs = newlyRewardedRungs(prevXp, nextXp, ladder);
   let granted = 0;
-  const actor = client ? `${client.slug}-sync` : "gamify-sync";
   for (const rung of rungs) {
     const label = `Level ${rung.level} – ${rung.reward_type} ${rung.reward_value}`;
     const exists = await playerRewardRepository.findOne({
@@ -136,8 +111,7 @@ const grantLevelRewards = async (
       player_id: player.id,
       action: "Level Reward Granted",
       detail: `${rung.rank_name} • ${label}`,
-      actor,
-      client_id: client?.id ?? null,
+      actor: "gamify-sync",
     });
     granted += 1;
   }
@@ -153,8 +127,7 @@ const grantLevelRewards = async (
  */
 export const applyXpToPlayer = async (
   player: Player,
-  delta: number,
-  client?: Client | null
+  delta: number
 ): Promise<{
   player: Player;
   prevXp: number;
@@ -174,16 +147,13 @@ export const applyXpToPlayer = async (
     patch.xp_to_next = progress.xp_to_next;
     patch.max_level = progress.max_level;
   }
-  // First writer wins for client attribution on the Player.
-  if (client && !player.client_id) patch.client_id = client.id;
-
   const updated = (await playerRepository.updateByPk(
     player.id,
     patch
   )) as Player;
 
   if (progress) {
-    await grantLevelRewards(updated, prevXp, nextXp, ladder, client);
+    await grantLevelRewards(updated, prevXp, nextXp, ladder);
   }
 
   return { player: updated, prevXp, nextXp, progress };
@@ -202,20 +172,11 @@ const summarize = (p: Player): ApplyResult["player"] => ({
  * gam_xp_transactions UNIQUE ledger. Gamru owns progression: XP is
  * accumulated locally and the level/rank is recomputed from the CRM
  * rank ladder, so LEVEL_UP / RANK_UP pushes are audit-only.
- *
- * When `client` is supplied (the authenticated tenant under the new
- * clientAuth flow) every written row is attributed to it so the admin
- * UI can show per-client traffic. If null (legacy serviceAuth fallback),
- * the system reverts to the historical `origin` string for routing.
  */
 export const applyEvent = async (
-  event: SyncEvent,
-  client?: Client | null
+  event: SyncEvent
 ): Promise<ApplyResult> => {
-  // The Client (when authenticated) is authoritative for the origin slug.
-  // We still accept event.origin / "gamify" as a fallback for legacy pushes.
-  const origin = client?.slug ?? event.origin ?? "gamify";
-  const actor = client ? `${client.slug}-sync` : "gamify-sync";
+  const origin = event.origin || "gamify";
 
   const seen = await GamXpTransaction.findOne({
     where: { event_id: event.event_id },
@@ -225,15 +186,13 @@ export const applyEvent = async (
   const { player } = await resolvePlayer(
     origin,
     event.external_id,
-    event.email,
-    client
+    event.email
   );
 
   // USER_REGISTERED only establishes the link; nothing else to do.
   if (event.event_type === "USER_REGISTERED") {
     await GamXpTransaction.create({
       player_id: player?.id ?? null,
-      client_id: client?.id ?? null,
       event_id: event.event_id,
       event_type: event.event_type,
       external_id: event.external_id,
@@ -257,7 +216,6 @@ export const applyEvent = async (
   if (event.event_type === "LEVEL_UP" || event.event_type === "RANK_UP") {
     await GamXpTransaction.create({
       player_id: player.id,
-      client_id: client?.id ?? null,
       event_id: event.event_id,
       event_type: event.event_type,
       external_id: event.external_id,
@@ -272,23 +230,20 @@ export const applyEvent = async (
   const delta = Number(event.amount) || 0;
   const { player: updated, nextXp, progress } = await applyXpToPlayer(
     player,
-    delta,
-    client
+    delta
   );
 
   await playerLogRepository.create({
     player_id: player.id,
-    client_id: client?.id ?? null,
     action: "XP Synced",
-    detail: `+${delta} XP from ${origin} (total ${nextXp})${
+    detail: `+${delta} XP from gamify (total ${nextXp})${
       progress ? ` • Lvl ${progress.level} ${progress.rank_name}` : ""
     }`,
-    actor,
+    actor: "gamify-sync",
   });
 
   await GamXpTransaction.create({
     player_id: player.id,
-    client_id: client?.id ?? null,
     event_id: event.event_id,
     event_type: event.event_type,
     external_id: event.external_id,

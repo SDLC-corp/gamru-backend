@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { receiveEvent } from "../modules/integration/controller/integration.controller";
-import { clientAuth } from "../middlewares/clientAuth.middleware";
+import { serviceAuth } from "../middlewares/serviceAuth.middleware";
 import { validate } from "../middlewares/validate.middleware";
 import { syncEventSchema } from "../validations/integration.validation";
 
@@ -8,7 +8,7 @@ const router = Router();
 
 router.post(
   "/events",
-  clientAuth("events.write"),
+  serviceAuth,
   validate(syncEventSchema, "body"),
   receiveEvent
 );

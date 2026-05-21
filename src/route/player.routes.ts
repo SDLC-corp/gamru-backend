@@ -13,7 +13,6 @@ import {
   addPlayerXpByEmail,
 } from "../modules/player/controller/player.controller";
 import { auth } from "../middlewares/auth.middleware";
-import { clientAuth } from "../middlewares/clientAuth.middleware";
 import { validate } from "../middlewares/validate.middleware";
 import {
   createPlayerSchema,
@@ -31,11 +30,10 @@ router.post("/add", auth, validate(createPlayerSchema), createPlayer);
 
 router.get("/:id", validate(playerIdParamSchema, "params"), getPlayer);
 
-router.post("/by-email", clientAuth("players.read"), getPlayerByEmail);
+router.post("/by-email", getPlayerByEmail);
 
 router.post(
   "/by-email/add-xp",
-  clientAuth("xp.write"),
   validate(addXpByEmailSchema, "body"),
   addPlayerXpByEmail
 );
