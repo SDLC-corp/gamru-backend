@@ -42,8 +42,8 @@ export class GamificationRepository extends BaseRepository<GamificationEntity> {
     }
 
     return this.paginate(page, limit, { [Op.and]: and }, [
-      ["priority", "DESC"],
-      ["created_at", "DESC"],
+      ["priority", "ASC"],
+      ["created_at", "ASC"],
     ]);
   }
 }
