@@ -36,6 +36,7 @@ const ROUTE_GROUPS = [
   { prefix: "/api/players", tag: "Players", router: require("../route/player.routes").default },
   { prefix: "/api/analytics", tag: "Analytics", router: require("../route/analytics.routes").default },
   { prefix: "/api/integration", tag: "Integration", router: require("../route/integration.routes").default },
+  { prefix: "/api/clients", tag: "Clients", router: require("../route/client.routes").default },
 ];
 
 // ── Path / parameter helpers ──────────────────────────────────────────────

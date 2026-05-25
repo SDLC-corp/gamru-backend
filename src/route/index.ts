@@ -30,6 +30,7 @@ import playerDataRoutes from "./player-data.routes";
 import playerRoutes from "./player.routes";
 import analyticsRoutes from "./analytics.routes";
 import integrationRoutes from "./integration.routes";
+import clientRoutes from "./client.routes";
 
 interface MountedRoute {
   path: string;
@@ -57,6 +58,7 @@ const apiRoutes: MountedRoute[] = [
   { path: "/players", router: playerRoutes },
   { path: "/analytics", router: analyticsRoutes },
   { path: "/integration", router: integrationRoutes },
+  { path: "/clients", router: clientRoutes },
 ];
 
 const apiRouter = Router();
