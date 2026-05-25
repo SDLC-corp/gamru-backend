@@ -96,7 +96,7 @@ Client.init(
   },
   {
     sequelize,
-    tableName: "clients",
+    tableName: "clientConfig",
     modelName: "Client",
     timestamps: true,
     underscored: true,

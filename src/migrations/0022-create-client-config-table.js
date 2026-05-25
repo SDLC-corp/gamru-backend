@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * Multi-tenancy: a "client" is an external organization (a brand/skin)
- * that consumes the Gamru platform.
+ * Multi-tenancy: a row in `clientConfig` represents an external
+ * organization (brand/skin) that consumes the Gamru platform.
  *
  *   - name        : human-readable display name (e.g. "SDLC Corps")
  *   - slug        : URL-safe identifier, unique (e.g. "sdlc-corps")
@@ -13,7 +13,7 @@
  */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("clients", {
+    await queryInterface.createTable("clientConfig", {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
@@ -85,26 +85,26 @@ module.exports = {
       },
     });
 
-    await queryInterface.addIndex("clients", ["slug"], {
+    await queryInterface.addIndex("clientConfig", ["slug"], {
       unique: true,
-      name: "clients_slug_uq",
+      name: "client_config_slug_uq",
     });
-    await queryInterface.addIndex("clients", ["skin_id"], {
+    await queryInterface.addIndex("clientConfig", ["skin_id"], {
       unique: true,
-      name: "clients_skin_id_uq",
+      name: "client_config_skin_id_uq",
     });
-    await queryInterface.addIndex("clients", ["auth_key"], {
+    await queryInterface.addIndex("clientConfig", ["auth_key"], {
       unique: true,
-      name: "clients_auth_key_uq",
+      name: "client_config_auth_key_uq",
     });
-    await queryInterface.addIndex("clients", ["status"]);
+    await queryInterface.addIndex("clientConfig", ["status"]);
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable("clients");
+    await queryInterface.dropTable("clientConfig");
     // Postgres ENUM types created by Sequelize must be dropped explicitly.
     await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_clients_status";'
+      'DROP TYPE IF EXISTS "enum_clientConfig_status";'
     );
   },
 };

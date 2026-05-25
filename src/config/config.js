@@ -1,5 +1,12 @@
 require("dotenv").config();
 
+console.log("Database configuration:");
+console.log("DB_HOST:", process.env.DB_HOST);
+console.log("DB_PORT:", process.env.DB_PORT);
+console.log("DB_USER:", process.env.DB_USER);
+console.log(" DB_PASSWORD:", process.env.DB_PASSWORD ? "****" : "(not set)");
+console.log("DB_NAME:", process.env.DB_NAME);
+
 // SSL: auto-enable for any remote host (e.g. Aiven cloud), keep off for
 // local Postgres. DB_SSL in .env still overrides ("true"/"false") if set.
 const dbHost = process.env.DB_HOST || "127.0.0.1";
