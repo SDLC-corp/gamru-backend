@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export interface DeviceSupport {
   mobile: boolean;
@@ -17,6 +18,7 @@ export class CasinoGame extends Model<
   InferCreationAttributes<CasinoGame>
 > {
   declare id: string;
+  declare tenant_id: CreationOptional<string>;
   declare name: string;
   declare provider: string;
   declare category: string;
@@ -36,6 +38,7 @@ CasinoGame.init(
       primaryKey: true,
       allowNull: false,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     name: {
       type: DataTypes.STRING(150),
       allowNull: false,
@@ -78,5 +81,7 @@ CasinoGame.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(CasinoGame);
 
 export default CasinoGame;

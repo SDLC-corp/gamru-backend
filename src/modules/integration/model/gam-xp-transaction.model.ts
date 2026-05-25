@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 /**
  * Append-only idempotency ledger for inbound gamification sync events.
@@ -17,6 +18,7 @@ export class GamXpTransaction extends Model<
   InferCreationAttributes<GamXpTransaction>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare player_id: CreationOptional<string | null>;
   declare event_id: string;
   declare event_type: string;
@@ -36,6 +38,7 @@ GamXpTransaction.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     player_id: { type: DataTypes.UUID, allowNull: true },
     event_id: { type: DataTypes.STRING(180), allowNull: false, unique: true },
     event_type: { type: DataTypes.STRING(60), allowNull: false },
@@ -59,5 +62,7 @@ GamXpTransaction.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(GamXpTransaction);
 
 export default GamXpTransaction;

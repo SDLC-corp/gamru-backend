@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type UnsubscribeChannel =
   | "EMAIL"
@@ -19,6 +20,7 @@ export class UnsubscribeReport extends Model<
   InferCreationAttributes<UnsubscribeReport>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare player_id: string;
   declare campaign_name: CreationOptional<string | null>;
   declare channel: UnsubscribeChannel;
@@ -36,6 +38,7 @@ UnsubscribeReport.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     player_id: {
       type: DataTypes.STRING(150),
       allowNull: false,
@@ -69,5 +72,7 @@ UnsubscribeReport.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(UnsubscribeReport);
 
 export default UnsubscribeReport;

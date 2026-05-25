@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type CampaignChannel =
   | "WEB_PUSH"
@@ -30,6 +31,7 @@ export class PlayerCampaignHistory extends Model<
   InferCreationAttributes<PlayerCampaignHistory>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare player_id: string;
   declare channel: CampaignChannel;
   declare title: string;
@@ -48,6 +50,7 @@ PlayerCampaignHistory.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     player_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -86,5 +89,7 @@ PlayerCampaignHistory.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(PlayerCampaignHistory);
 
 export default PlayerCampaignHistory;

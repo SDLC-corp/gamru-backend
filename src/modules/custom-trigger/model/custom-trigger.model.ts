@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type CustomTriggerStatus = "ACTIVE" | "INACTIVE";
 
@@ -14,6 +15,7 @@ export class CustomTrigger extends Model<
   InferCreationAttributes<CustomTrigger>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare name: string;
   declare trigger: CreationOptional<string | null>;
   declare status: CreationOptional<CustomTriggerStatus>;
@@ -34,6 +36,7 @@ CustomTrigger.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     name: {
       type: DataTypes.STRING(150),
       allowNull: false,
@@ -78,5 +81,7 @@ CustomTrigger.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(CustomTrigger);
 
 export default CustomTrigger;

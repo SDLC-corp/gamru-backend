@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type PlayerStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "N/A";
 
@@ -20,6 +21,7 @@ export class Player extends Model<
   InferCreationAttributes<Player>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare player_id: string;
   declare username: string;
   declare name: CreationOptional<string | null>;
@@ -64,10 +66,10 @@ Player.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     player_id: {
       type: DataTypes.STRING(120),
       allowNull: false,
-      unique: true,
     },
     username: {
       type: DataTypes.STRING(120),
@@ -182,5 +184,7 @@ Player.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(Player);
 
 export default Player;

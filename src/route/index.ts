@@ -11,6 +11,7 @@
 import { Router } from "express";
 
 import authRoutes from "./auth.routes";
+import tenantRoutes from "./tenant.routes";
 import userRoutes from "./user.routes";
 import userLogRoutes from "./user-log.routes";
 import roleRoutes from "./role.routes";
@@ -38,6 +39,7 @@ interface MountedRoute {
 
 const apiRoutes: MountedRoute[] = [
   { path: "/auth", router: authRoutes },
+  { path: "/tenants", router: tenantRoutes },
   { path: "/users", router: userRoutes },
   { path: "/user-log", router: userLogRoutes },
   { path: "/roles", router: roleRoutes },

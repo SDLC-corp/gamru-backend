@@ -6,20 +6,24 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
-import UserLog from "../../user-log/model/user-log.model";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
+
+export type UserRole = "USER" | "ADMIN" | "SUPER_ADMIN";
 
 export class User extends Model<
   InferAttributes<User>,
   InferCreationAttributes<User>
 > {
   declare id: CreationOptional<string>;
+  // tenant_id is NULL only for SUPER_ADMIN. Enforced by DB CHECK in Phase 2 migrations.
+  declare tenant_id: CreationOptional<string | null>;
   declare first_name: string;
   declare last_name: string;
   declare username: CreationOptional<string | null>;
   declare email: string;
   declare mobile: string;
   declare password: string;
-  declare role: CreationOptional<"USER" | "ADMIN">;
+  declare role: CreationOptional<UserRole>;
   declare access_token: CreationOptional<string | null>;
   declare refresh_token: CreationOptional<string | null>;
   declare status: CreationOptional<"ACTIVE" | "INACTIVE">;
@@ -37,6 +41,10 @@ User.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: {
+      type: DataTypes.UUID,
+      allowNull: true, // Phase 4 flips to NOT NULL via 0027 migration
+    },
     first_name: {
       type: DataTypes.STRING(100),
       allowNull: false,
@@ -47,18 +55,15 @@ User.init(
     },
     username: {
       type: DataTypes.STRING(100),
-      unique: true,
       allowNull: true,
     },
     email: {
       type: DataTypes.STRING(100),
-      unique: true,
       allowNull: false,
       validate: { isEmail: true },
     },
     mobile: {
       type: DataTypes.STRING(20),
-      unique: true,
       allowNull: false,
     },
     password: {
@@ -66,7 +71,7 @@ User.init(
       allowNull: false,
     },
     role: {
-      type: DataTypes.ENUM("USER", "ADMIN"),
+      type: DataTypes.ENUM("USER", "ADMIN", "SUPER_ADMIN"),
       defaultValue: "USER",
     },
     status: {
@@ -115,5 +120,8 @@ User.init(
   }
 );
 
+// Auto-inject tenant_id on every query/insert against `users`.
+// Login lookups need to bypass — see auth.service.ts.
+applyTenantScope(User);
 
 export default User;

@@ -1,5 +1,5 @@
 import { Op, WhereOptions, fn, col } from "sequelize";
-import { BaseRepository } from "../../../core/models/base.repository";
+import { TenantScopedRepository } from "../../../core/models/tenant-scoped.repository";
 import Segment from "./segment.model";
 
 export interface SegmentFilter {
@@ -10,7 +10,7 @@ export interface SegmentFilter {
   archived?: boolean;
 }
 
-class SegmentRepository extends BaseRepository<Segment> {
+class SegmentRepository extends TenantScopedRepository<Segment> {
   constructor() {
     super(Segment);
   }

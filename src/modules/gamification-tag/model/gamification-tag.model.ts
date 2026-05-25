@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export const GAMIFICATION_TAG_CATEGORIES = [
   "mission",
@@ -24,6 +25,7 @@ export class GamificationTag extends Model<
   InferCreationAttributes<GamificationTag>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare name: string;
   declare description: CreationOptional<string | null>;
   declare category: GamificationTagCategory;
@@ -40,6 +42,7 @@ GamificationTag.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     name: {
       type: DataTypes.STRING(100),
       allowNull: false,
@@ -68,5 +71,7 @@ GamificationTag.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(GamificationTag);
 
 export default GamificationTag;

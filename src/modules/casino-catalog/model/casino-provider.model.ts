@@ -6,12 +6,14 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export class CasinoProvider extends Model<
   InferAttributes<CasinoProvider>,
   InferCreationAttributes<CasinoProvider>
 > {
   declare id: string;
+  declare tenant_id: CreationOptional<string>;
   declare name: string;
 
   declare readonly created_at: CreationOptional<Date>;
@@ -25,6 +27,7 @@ CasinoProvider.init(
       primaryKey: true,
       allowNull: false,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     name: {
       type: DataTypes.STRING(150),
       allowNull: false,
@@ -41,5 +44,7 @@ CasinoProvider.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(CasinoProvider);
 
 export default CasinoProvider;

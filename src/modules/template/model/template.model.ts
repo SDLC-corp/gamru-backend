@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type TemplateChannel =
   | "EMAIL"
@@ -19,6 +20,7 @@ export class Template extends Model<
   InferCreationAttributes<Template>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare name: string;
   declare channel: TemplateChannel;
   declare description: CreationOptional<string | null>;
@@ -41,6 +43,7 @@ Template.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     name: {
       type: DataTypes.STRING(150),
       allowNull: false,
@@ -94,5 +97,7 @@ Template.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(Template);
 
 export default Template;

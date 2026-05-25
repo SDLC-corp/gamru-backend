@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 /**
  * Account-level activity log for a player — powers the
@@ -16,6 +17,7 @@ export class PlayerLog extends Model<
   InferCreationAttributes<PlayerLog>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare player_id: string;
   declare action: string;
   declare detail: CreationOptional<string | null>;
@@ -32,6 +34,7 @@ PlayerLog.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     player_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -60,5 +63,7 @@ PlayerLog.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(PlayerLog);
 
 export default PlayerLog;

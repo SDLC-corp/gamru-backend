@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type RewardStatus =
   | "IN_PROGRESS"
@@ -22,6 +23,7 @@ export class PlayerReward extends Model<
   InferCreationAttributes<PlayerReward>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare player_id: string;
   declare status: CreationOptional<RewardStatus>;
   declare granted_date: CreationOptional<Date | null>;
@@ -41,6 +43,7 @@ PlayerReward.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     player_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -81,5 +84,7 @@ PlayerReward.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(PlayerReward);
 
 export default PlayerReward;

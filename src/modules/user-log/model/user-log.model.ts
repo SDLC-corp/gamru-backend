@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 import User from "../../user/model/user.model";
 
 export class UserLog extends Model<
@@ -13,6 +14,7 @@ export class UserLog extends Model<
   InferCreationAttributes<UserLog>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare user_id: string;
 
   declare action: "INSERT" | "UPDATE" | "DELETE" | "LOGIN";
@@ -35,6 +37,7 @@ UserLog.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     user_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -58,5 +61,6 @@ UserLog.init(
   }
 );
 
+applyTenantScope(UserLog);
 
 export default UserLog;

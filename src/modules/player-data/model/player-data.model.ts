@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type PlayerDataType = "STRING" | "BOOLEAN" | "NUMBER" | "DATE";
 
@@ -14,6 +15,7 @@ export class PlayerData extends Model<
   InferCreationAttributes<PlayerData>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare name: string;
   declare description: CreationOptional<string | null>;
   declare data_type: PlayerDataType;
@@ -32,6 +34,7 @@ PlayerData.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     name: {
       type: DataTypes.STRING(150),
       allowNull: false,
@@ -70,5 +73,7 @@ PlayerData.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(PlayerData);
 
 export default PlayerData;

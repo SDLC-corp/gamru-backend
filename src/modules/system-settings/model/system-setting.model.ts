@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type SettingsPanel =
   | "core"
@@ -20,6 +21,7 @@ export class SystemSetting extends Model<
   InferCreationAttributes<SystemSetting>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare panel: SettingsPanel;
   declare key: string;
   declare value: CreationOptional<unknown>;
@@ -35,6 +37,7 @@ SystemSetting.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     panel: {
       type: DataTypes.ENUM(
         "core",
@@ -68,8 +71,10 @@ SystemSetting.init(
     timestamps: true,
     createdAt: "created_at",
     updatedAt: "updated_at",
-    indexes: [{ unique: true, fields: ["panel", "key"] }],
+    indexes: [{ unique: true, fields: ["tenant_id", "panel", "key"] }],
   }
 );
+
+applyTenantScope(SystemSetting);
 
 export default SystemSetting;

@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type SegmentType = "DYNAMIC" | "STATIC";
 
@@ -14,6 +15,7 @@ export class Segment extends Model<
   InferCreationAttributes<Segment>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare name: string;
   declare type: CreationOptional<SegmentType>;
   declare description: CreationOptional<string | null>;
@@ -34,6 +36,10 @@ Segment.init(
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
+    },
+    tenant_id: {
+      type: DataTypes.UUID,
+      allowNull: true, // Phase 4 → NOT NULL
     },
     name: {
       type: DataTypes.STRING(150),
@@ -84,5 +90,9 @@ Segment.init(
     updatedAt: "updated_at",
   }
 );
+
+// Every query / insert / update / delete on `segments` is now
+// automatically filtered & stamped with the current request's tenant_id.
+applyTenantScope(Segment);
 
 export default Segment;

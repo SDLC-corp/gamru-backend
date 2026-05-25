@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 /**
  * A single flexible schema reused by every gamification feature
@@ -21,6 +22,7 @@ export class GamificationEntity extends Model<
   InferCreationAttributes<GamificationEntity>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare name: string;
   declare description: CreationOptional<string | null>;
   declare status: CreationOptional<"ACTIVE" | "INACTIVE">;
@@ -47,6 +49,7 @@ export const defineGamificationModel = (
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
+      tenant_id: { type: DataTypes.UUID, allowNull: true },
       name: {
         type: DataTypes.STRING(200),
         allowNull: false,
@@ -96,6 +99,8 @@ export const defineGamificationModel = (
       updatedAt: "updated_at",
     }
   );
+
+  applyTenantScope(FeatureModel);
 
   return FeatureModel;
 };

@@ -6,12 +6,14 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export class SportTeam extends Model<
   InferAttributes<SportTeam>,
   InferCreationAttributes<SportTeam>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare name: string;
   declare sport: CreationOptional<string | null>;
   declare tournament: CreationOptional<string | null>;
@@ -27,6 +29,7 @@ SportTeam.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     name: {
       type: DataTypes.STRING(150),
       allowNull: false,
@@ -51,5 +54,7 @@ SportTeam.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(SportTeam);
 
 export default SportTeam;

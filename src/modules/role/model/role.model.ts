@@ -6,12 +6,14 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export class Role extends Model<
   InferAttributes<Role>,
   InferCreationAttributes<Role>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare name: string;
   declare description: CreationOptional<string | null>;
   declare status: CreationOptional<"ACTIVE" | "INACTIVE">;
@@ -27,10 +29,10 @@ Role.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     name: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      unique: true,
     },
     description: {
       type: DataTypes.STRING(255),
@@ -52,5 +54,7 @@ Role.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(Role);
 
 export default Role;

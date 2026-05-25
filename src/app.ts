@@ -7,6 +7,7 @@ import swaggerUi from "swagger-ui-express";
 import apiRouter from "./route";
 import { UPLOAD_DIR } from "./middlewares/upload.middleware";
 import { errorHandler } from "./middlewares/error.middleware";
+import { resolveTenantPublic } from "./middlewares/tenant.middleware";
 import { swaggerSpec } from "./config/swagger";
 import { initAssociations } from "./config/associations";
 
@@ -28,6 +29,13 @@ app.use("/uploads", express.static(UPLOAD_DIR));
 
 // ─── Swagger Docs ──────────────────────────────────────────────────
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// ─── Tenant context (public routes) ────────────────────────────────
+// Resolves a tenant from subdomain or x-tenant-id header on EVERY
+// /api/* request. Protected routes additionally run the strict
+// `resolveTenant` inside the `auth` middleware, which validates
+// against the JWT and overrides this with the JWT-bound tenant.
+app.use("/api", resolveTenantPublic);
 
 // ─── Routes ────────────────────────────────────────────────────────
 app.use("/api", apiRouter);

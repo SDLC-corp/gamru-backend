@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 /**
  * Links an external (gamify-engage) user to a gamru Player. The pair
@@ -17,6 +18,7 @@ export class ExternalAccount extends Model<
   InferCreationAttributes<ExternalAccount>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare origin: string;
   declare external_id: string;
   declare player_id: CreationOptional<string | null>;
@@ -33,6 +35,7 @@ ExternalAccount.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     origin: { type: DataTypes.STRING(40), allowNull: false },
     external_id: { type: DataTypes.STRING(120), allowNull: false },
     player_id: { type: DataTypes.UUID, allowNull: true },
@@ -49,5 +52,7 @@ ExternalAccount.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(ExternalAccount);
 
 export default ExternalAccount;

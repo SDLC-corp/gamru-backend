@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type AnalyticsChannel = "EMAIL" | "SMS" | "WEB_PUSH" | "ONSITE";
 
@@ -14,6 +15,7 @@ export class CampaignAnalytics extends Model<
   InferCreationAttributes<CampaignAnalytics>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare campaign_id: string;
   declare channel: AnalyticsChannel;
   declare sent: CreationOptional<number>;
@@ -33,6 +35,7 @@ CampaignAnalytics.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     campaign_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -79,5 +82,7 @@ CampaignAnalytics.init(
     indexes: [{ unique: true, fields: ["campaign_id", "channel"] }],
   }
 );
+
+applyTenantScope(CampaignAnalytics);
 
 export default CampaignAnalytics;

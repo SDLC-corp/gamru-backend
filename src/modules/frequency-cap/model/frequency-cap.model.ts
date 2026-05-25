@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type FrequencyCapChannel =
   | "EMAIL"
@@ -21,6 +22,7 @@ export class FrequencyCap extends Model<
   InferCreationAttributes<FrequencyCap>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare channel: FrequencyCapChannel;
   declare period: FrequencyCapPeriod;
   declare limit: number;
@@ -37,6 +39,7 @@ FrequencyCap.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     channel: {
       type: DataTypes.ENUM("EMAIL", "SMS", "ONSITE", "WEBPUSH", "INAPP"),
       allowNull: false,
@@ -67,5 +70,7 @@ FrequencyCap.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(FrequencyCap);
 
 export default FrequencyCap;

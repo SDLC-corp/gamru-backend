@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export type HistoryStatus =
   | "SENT"
@@ -23,6 +24,7 @@ export class CampaignHistory extends Model<
   InferCreationAttributes<CampaignHistory>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare campaign_id: CreationOptional<string | null>;
   declare name: string;
   declare player_id: string;
@@ -41,6 +43,7 @@ CampaignHistory.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     campaign_id: {
       type: DataTypes.UUID,
       allowNull: true,
@@ -92,5 +95,7 @@ CampaignHistory.init(
     ],
   }
 );
+
+applyTenantScope(CampaignHistory);
 
 export default CampaignHistory;

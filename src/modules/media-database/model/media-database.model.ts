@@ -6,6 +6,7 @@ import {
   CreationOptional,
 } from "sequelize";
 import sequelize from "../../../config/db";
+import { applyTenantScope } from "../../../core/tenant/tenant-scope";
 
 export const MEDIA_DATABASE_CATEGORIES = [
   "banners",
@@ -25,6 +26,7 @@ export class MediaDatabase extends Model<
   InferCreationAttributes<MediaDatabase>
 > {
   declare id: CreationOptional<string>;
+  declare tenant_id: CreationOptional<string>;
   declare name: string;
   declare description: CreationOptional<string | null>;
   declare category: MediaDatabaseCategory;
@@ -44,6 +46,7 @@ MediaDatabase.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tenant_id: { type: DataTypes.UUID, allowNull: true },
     name: {
       type: DataTypes.STRING(255),
       allowNull: false,
@@ -84,5 +87,7 @@ MediaDatabase.init(
     updatedAt: "updated_at",
   }
 );
+
+applyTenantScope(MediaDatabase);
 
 export default MediaDatabase;
