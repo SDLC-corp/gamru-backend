@@ -3,6 +3,7 @@ import {
   createClient,
   deleteClient,
   getClient,
+  getCurrentClient,
   listClients,
   rotateClientAuthKey,
   toggleClientStatus,
@@ -10,6 +11,7 @@ import {
 } from "../modules/client/controller/client.controller";
 import { auth } from "../middlewares/auth.middleware";
 import { role } from "../middlewares/role.middleware";
+import { clientAuth } from "../middlewares/clientAuth.middleware";
 import { validate } from "../middlewares/validate.middleware";
 import {
   clientIdParamSchema,
@@ -19,6 +21,10 @@ import {
 } from "../validations/client.validation";
 
 const router = Router();
+
+// Client-key authenticated identity lookup (no admin login required).
+// Used by consuming backends to verify their auth key at boot.
+router.get("/me", clientAuth, getCurrentClient);
 
 router.post(
   "/add",

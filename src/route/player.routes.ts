@@ -13,6 +13,7 @@ import {
   addPlayerXpByEmail,
 } from "../modules/player/controller/player.controller";
 import { auth } from "../middlewares/auth.middleware";
+import { clientAuth } from "../middlewares/clientAuth.middleware";
 import { validate } from "../middlewares/validate.middleware";
 import {
   createPlayerSchema,
@@ -28,12 +29,21 @@ router.get("/paginate", auth, paginatePlayers);
 
 router.post("/add", auth, validate(createPlayerSchema), createPlayer);
 
-router.get("/:id", validate(playerIdParamSchema, "params"), getPlayer);
+// Endpoints below are called from external client backends (e.g. a
+// games platform). They require `x-client-auth-key` matching a row in
+// `clientConfig`. Missing/unknown key → 401, DISABLED client → 403.
+router.get(
+  "/:id",
+  clientAuth,
+  validate(playerIdParamSchema, "params"),
+  getPlayer
+);
 
-router.post("/by-email", getPlayerByEmail);
+router.post("/by-email", clientAuth, getPlayerByEmail);
 
 router.post(
   "/by-email/add-xp",
+  clientAuth,
   validate(addXpByEmailSchema, "body"),
   addPlayerXpByEmail
 );

@@ -11,6 +11,7 @@ import {
   resolveProgress,
   newlyRewardedRungs,
 } from "./gam.engine";
+import type { ResolvedClient } from "../../../types/request.type";
 
 export type SyncEventType =
   | "USER_REGISTERED"
@@ -174,9 +175,20 @@ const summarize = (p: Player): ApplyResult["player"] => ({
  * rank ladder, so LEVEL_UP / RANK_UP pushes are audit-only.
  */
 export const applyEvent = async (
-  event: SyncEvent
+  event: SyncEvent,
+  client?: ResolvedClient
 ): Promise<ApplyResult> => {
-  const origin = event.origin || "gamify";
+  // The calling client's slug becomes the event's origin, so per-client
+  // ExternalAccount mappings stay isolated (e.g. `sdlc-corps` vs.
+  // `acme-casino` can both have the same `external_id` without colliding).
+  const origin = event.origin || client?.slug || "gamify";
+
+  // Provenance stamped onto every ledger row + log so a future operator
+  // can answer "which client pushed this XP?" without grepping nginx logs.
+  const metaWithClient: Record<string, unknown> | null = client
+    ? { ...(event.meta ?? {}), client_id: client.id, client_slug: client.slug }
+    : (event.meta ?? null);
+  const actor = client ? `client:${client.slug}` : "gamify-sync";
 
   const seen = await GamXpTransaction.findOne({
     where: { event_id: event.event_id },
@@ -198,7 +210,7 @@ export const applyEvent = async (
       external_id: event.external_id,
       amount: 0,
       balance_after: player ? Number(player.xp_points ?? 0) : 0,
-      meta: event.meta ?? null,
+      meta: metaWithClient,
     });
     return {
       applied: true,
@@ -221,7 +233,7 @@ export const applyEvent = async (
       external_id: event.external_id,
       amount: 0,
       balance_after: Number(player.xp_points ?? 0),
-      meta: event.meta ?? null,
+      meta: metaWithClient,
     });
     return { applied: true, player: summarize(player) };
   }
@@ -236,10 +248,10 @@ export const applyEvent = async (
   await playerLogRepository.create({
     player_id: player.id,
     action: "XP Synced",
-    detail: `+${delta} XP from gamify (total ${nextXp})${
+    detail: `+${delta} XP from ${client?.name ?? origin} (total ${nextXp})${
       progress ? ` • Lvl ${progress.level} ${progress.rank_name}` : ""
     }`,
-    actor: "gamify-sync",
+    actor,
   });
 
   await GamXpTransaction.create({
@@ -249,7 +261,7 @@ export const applyEvent = async (
     external_id: event.external_id,
     amount: delta,
     balance_after: nextXp,
-    meta: event.meta ?? null,
+    meta: metaWithClient,
   });
 
   return { applied: true, player: summarize(updated) };

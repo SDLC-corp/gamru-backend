@@ -31,6 +31,27 @@ const handle = (
   errorResponse(res, 500, fallback);
 };
 
+/**
+ * GET /api/clients/me — used by client backends to verify their
+ * `x-client-auth-key` and discover their own identity. The clientAuth
+ * middleware has already resolved `req.client` by the time we get here.
+ */
+export const getCurrentClient = async (
+  req: AuthRequest,
+  res: Response,
+  _next: NextFunction
+) => {
+  try {
+    if (!req.client) {
+      errorResponse(res, 401, "Client not resolved");
+      return;
+    }
+    successResponse(res, 200, "Client identified", req.client);
+  } catch (err) {
+    handle(res, err, "Failed to resolve client");
+  }
+};
+
 export const createClient = async (
   req: AuthRequest,
   res: Response,
