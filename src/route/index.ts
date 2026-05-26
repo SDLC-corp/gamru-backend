@@ -16,6 +16,7 @@ import userLogRoutes from "./user-log.routes";
 import roleRoutes from "./role.routes";
 import systemSettingsRoutes from "./system-settings.routes";
 import gamificationTagRoutes from "./gamification-tag.routes";
+import crmTagRoutes from "./crm-tag.routes";
 import mediaDatabaseRoutes from "./media-database.routes";
 import casinoCatalogRoutes from "./casino-catalog.routes";
 import sportCatalogRoutes from "./sport-catalog.routes";
@@ -44,6 +45,7 @@ const apiRoutes: MountedRoute[] = [
   { path: "/roles", router: roleRoutes },
   { path: "/system-settings", router: systemSettingsRoutes },
   { path: "/tags-gamification", router: gamificationTagRoutes },
+  { path: "/tags-crm", router: crmTagRoutes },
   { path: "/media-database", router: mediaDatabaseRoutes },
   { path: "/casino-catalog", router: casinoCatalogRoutes },
   { path: "/sport-catalog", router: sportCatalogRoutes },
