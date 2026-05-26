@@ -14,6 +14,7 @@ import {
 } from "../modules/player/controller/player.controller";
 import { auth } from "../middlewares/auth.middleware";
 import { clientAuth } from "../middlewares/clientAuth.middleware";
+import { flexAuth } from "../middlewares/flexAuth.middleware";
 import { validate } from "../middlewares/validate.middleware";
 import {
   createPlayerSchema,
@@ -29,16 +30,20 @@ router.get("/paginate", auth, paginatePlayers);
 
 router.post("/add", auth, validate(createPlayerSchema), createPlayer);
 
-// Endpoints below are called from external client backends (e.g. a
-// games platform). They require `x-client-auth-key` matching a row in
-// `clientConfig`. Missing/unknown key → 401, DISABLED client → 403.
+// GET /:id is hit by BOTH the gamru admin UI (logged-in operator with
+// JWT) and external service backends (x-client-auth-key). `flexAuth`
+// accepts either credential and routes to the matching guard.
 router.get(
   "/:id",
-  clientAuth,
+  flexAuth,
   validate(playerIdParamSchema, "params"),
   getPlayer
 );
 
+// The two `by-email` endpoints are only called by external service
+// backends — they look players up by the consumer's external email,
+// which an admin UI would never do. So they stay locked down to
+// `x-client-auth-key` only.
 router.post("/by-email", clientAuth, getPlayerByEmail);
 
 router.post(
