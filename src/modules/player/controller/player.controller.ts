@@ -88,11 +88,12 @@ export const addPlayerXpByEmail = async (
   _next: NextFunction
 ) => {
   try {
-    const { email, amount } = req.body;
+    const { email, amount, game } = req.body;
     const data = await addPlayerXpByEmailService(
       email,
       amount,
-      req.user?.email ?? null
+      req.user?.email ?? null,
+      game ?? null
     );
     successResponse(res, 200, "Player XP updated successfully", data);
   } catch (error) {

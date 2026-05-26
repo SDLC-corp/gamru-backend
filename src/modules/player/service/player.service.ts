@@ -194,6 +194,127 @@ export const getPlayerByEmailService = async (email: string) => {
   };
 };
 
+/** Optional per-play game metadata pushed alongside an XP delta. */
+export interface PlayGameInput {
+  id?: string | null;
+  name?: string | null;
+  category?: string | null;
+  provider?: string | null;
+  turnover?: number | null;
+}
+
+interface CasinoStat {
+  name: string;
+  perc: number;
+  turnover: number;
+}
+
+interface CasinoFav {
+  position: number;
+  game: string;
+  category: string;
+  turnover: number;
+  perc: number;
+}
+
+interface CasinoPersonalization {
+  totalTurnover?: number;
+  gameCategory?: CasinoStat[];
+  gameProvider?: CasinoStat[];
+  favoriteGames?: CasinoFav[];
+}
+
+const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+const upsertStat = (
+  rows: CasinoStat[],
+  name: string,
+  turnover: number,
+  total: number
+): CasinoStat[] => {
+  const next = rows.slice();
+  const i = next.findIndex((r) => r.name === name);
+  if (i >= 0) next[i] = { ...next[i], turnover: round2(next[i].turnover + turnover) };
+  else next.push({ name, perc: 0, turnover: round2(turnover) });
+  const safe = total > 0 ? total : 1;
+  return next
+    .map((r) => ({ ...r, perc: round2((r.turnover / safe) * 100) }))
+    .sort((a, b) => b.turnover - a.turnover);
+};
+
+const upsertFavorite = (
+  rows: CasinoFav[],
+  gameName: string,
+  category: string,
+  turnover: number,
+  total: number
+): CasinoFav[] => {
+  const next = rows.slice();
+  const i = next.findIndex((r) => r.game === gameName);
+  if (i >= 0)
+    next[i] = {
+      ...next[i],
+      category: category || next[i].category,
+      turnover: round2(next[i].turnover + turnover),
+    };
+  else
+    next.push({
+      position: 0,
+      game: gameName,
+      category: category || "—",
+      turnover: round2(turnover),
+      perc: 0,
+    });
+  const safe = total > 0 ? total : 1;
+  return next
+    .map((r) => ({ ...r, perc: round2((r.turnover / safe) * 100) }))
+    .sort((a, b) => b.turnover - a.turnover)
+    .map((r, idx) => ({ ...r, position: idx + 1 }));
+};
+
+/**
+ * Fold a single play into the player's casino personalization bucket.
+ * Increments totalTurnover and recomputes category/provider/favorite
+ * percentages against the new total.
+ */
+const applyPlayToPersonalization = (
+  existing: Record<string, unknown> | null | undefined,
+  game: PlayGameInput
+): Record<string, unknown> => {
+  const turnover = Math.max(0, Number(game.turnover ?? 0) || 0);
+  const root = (existing ?? {}) as Record<string, unknown>;
+  const casino = ((root.casino as CasinoPersonalization | undefined) ?? {}) as CasinoPersonalization;
+  const total = round2(Number(casino.totalTurnover ?? 0) + turnover);
+
+  let gameCategory = casino.gameCategory ?? [];
+  let gameProvider = casino.gameProvider ?? [];
+  let favoriteGames = casino.favoriteGames ?? [];
+
+  if (turnover > 0 && game.category)
+    gameCategory = upsertStat(gameCategory, game.category, turnover, total);
+  if (turnover > 0 && game.provider)
+    gameProvider = upsertStat(gameProvider, game.provider, turnover, total);
+  if (turnover > 0 && (game.name || game.id))
+    favoriteGames = upsertFavorite(
+      favoriteGames,
+      game.name || (game.id as string),
+      game.category ?? "",
+      turnover,
+      total
+    );
+
+  return {
+    ...root,
+    casino: {
+      ...casino,
+      totalTurnover: total,
+      gameCategory,
+      gameProvider,
+      favoriteGames,
+    },
+  };
+};
+
 /**
  * Admin/integration helper: give a player (resolved by email) an XP delta.
  * Reuses the single gamification engine so level, rank, xp_to_next and any
@@ -202,7 +323,8 @@ export const getPlayerByEmailService = async (email: string) => {
 export const addPlayerXpByEmailService = async (
   email: string,
   amount: number,
-  actor?: string | null
+  actor?: string | null,
+  game?: PlayGameInput | null
 ) => {
   const player = await playerRepository.findOne({ email });
   if (!player) {
@@ -218,6 +340,16 @@ export const addPlayerXpByEmailService = async (
     player,
     delta
   );
+
+  if (game && (game.category || game.provider || game.name || game.id)) {
+    const nextPersonalization = applyPlayToPersonalization(
+      updated.personalization as Record<string, unknown> | null,
+      game
+    );
+    await playerRepository.updateByPk(updated.id, {
+      personalization: nextPersonalization,
+    } as Partial<Player["_creationAttributes"]>);
+  }
 
   await playerLogRepository.create({
     player_id: player.id,

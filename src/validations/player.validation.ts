@@ -64,6 +64,17 @@ export const addXpByEmailSchema = Joi.object({
     "any.invalid": "amount must be a non-zero number",
     "any.required": "amount is required",
   }),
+  // Optional per-play game metadata. When present it feeds the player's
+  // casino personalization aggregate (category/provider mix + favorites).
+  game: Joi.object({
+    id: Joi.string().max(120).allow("", null).optional(),
+    name: Joi.string().max(160).allow("", null).optional(),
+    category: Joi.string().max(120).allow("", null).optional(),
+    provider: Joi.string().max(120).allow("", null).optional(),
+    turnover: Joi.number().min(0).optional(),
+  })
+    .allow(null)
+    .optional(),
 });
 
 export const manualRewardSchema = Joi.object({
