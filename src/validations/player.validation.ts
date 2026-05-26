@@ -59,9 +59,11 @@ export const addXpByEmailSchema = Joi.object({
     "string.email": "email must be a valid email",
     "any.required": "email is required",
   }),
-  amount: Joi.number().invalid(0).required().messages({
+  // 0 is allowed when a `game` payload is attached, so losing rounds
+  // still update the personalization turnover. The service enforces the
+  // "non-zero unless game is present" rule at runtime.
+  amount: Joi.number().required().messages({
     "number.base": "amount must be a number",
-    "any.invalid": "amount must be a non-zero number",
     "any.required": "amount is required",
   }),
   // Optional per-play game metadata. When present it feeds the player's

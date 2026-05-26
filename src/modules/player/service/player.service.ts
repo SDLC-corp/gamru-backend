@@ -332,33 +332,48 @@ export const addPlayerXpByEmailService = async (
   }
 
   const delta = Number(amount);
-  if (!Number.isFinite(delta) || delta === 0) {
+  const hasGame = !!(
+    game && (game.category || game.provider || game.name || game.id)
+  );
+  if (!Number.isFinite(delta)) {
+    throw new AppError("amount must be a number", 400);
+  }
+  // 0 is only meaningful when a game payload is attached — it lets a
+  // losing round still record its bet as turnover for personalization.
+  if (delta === 0 && !hasGame) {
     throw new AppError("amount must be a non-zero number", 400);
   }
 
-  const { player: updated, nextXp, progress } = await applyXpToPlayer(
-    player,
-    delta
-  );
-
-  if (game && (game.category || game.provider || game.name || game.id)) {
-    const nextPersonalization = applyPlayToPersonalization(
-      updated.personalization as Record<string, unknown> | null,
-      game
-    );
-    await playerRepository.updateByPk(updated.id, {
-      personalization: nextPersonalization,
-    } as Partial<Player["_creationAttributes"]>);
+  let updated: Player = player;
+  let nextXp = Number(player.xp_points ?? 0);
+  let progress: ReturnType<typeof resolveProgress> = null;
+  if (delta !== 0) {
+    const r = await applyXpToPlayer(player, delta);
+    updated = r.player;
+    nextXp = r.nextXp;
+    progress = r.progress;
   }
 
-  await playerLogRepository.create({
-    player_id: player.id,
-    action: "XP Adjusted",
-    detail: `${delta > 0 ? "+" : ""}${delta} XP (total ${nextXp})${
-      progress ? ` • Lvl ${progress.level} ${progress.rank_name}` : ""
-    }`,
-    actor: actor ?? "admin",
-  });
+  if (hasGame) {
+    const nextPersonalization = applyPlayToPersonalization(
+      updated.personalization as Record<string, unknown> | null,
+      game!
+    );
+    updated = (await playerRepository.updateByPk(updated.id, {
+      personalization: nextPersonalization,
+    } as Partial<Player["_creationAttributes"]>)) as Player;
+  }
+
+  if (delta !== 0) {
+    await playerLogRepository.create({
+      player_id: player.id,
+      action: "XP Adjusted",
+      detail: `${delta > 0 ? "+" : ""}${delta} XP (total ${nextXp})${
+        progress ? ` • Lvl ${progress.level} ${progress.rank_name}` : ""
+      }`,
+      actor: actor ?? "admin",
+    });
+  }
 
   return {
     id: updated.id,
