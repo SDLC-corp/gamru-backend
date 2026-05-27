@@ -9,6 +9,7 @@ import {
   getCampaignHistoryService,
   getRewardsService,
   addManualRewardService,
+  claimRewardService,
   getLogsService,
   getPlayerByEmailService,
   addPlayerXpByEmailService,
@@ -187,6 +188,23 @@ export const addManualReward = async (
     successResponse(res, 200, "Manual reward added successfully", data);
   } catch (error) {
     handle(res, error, "Failed to add manual reward");
+  }
+};
+
+export const claimReward = async (
+  req: AuthRequest,
+  res: Response,
+  _next: NextFunction
+) => {
+  try {
+    const data = await claimRewardService(
+      req.params.id,
+      req.params.rewardId,
+      req.user?.email ?? "player"
+    );
+    successResponse(res, 200, "Reward claimed successfully", data);
+  } catch (error) {
+    handle(res, error, "Failed to claim reward");
   }
 };
 

@@ -577,3 +577,105 @@ export const getLogsService = async (
   await ensurePlayer(id);
   return playerLogRepository.paginateForPlayer(id, page, limit);
 };
+
+/**
+ * Extract a trailing numeric value from a reward label like
+ * "Level 5 – xp 100" → 100 or a plain "25" → 25. Returns 0 when no
+ * number is present (e.g. a manual badge with only a name).
+ */
+const parseRewardAmount = (reward?: string | null): number => {
+  if (!reward) return 0;
+  const m = String(reward).match(/(-?\d+(?:\.\d+)?)\s*$/);
+  return m ? Number(m[1]) : 0;
+};
+
+/** Normalise the many spellings of reward_type to a single canonical key. */
+const normalizeRewardType = (t?: string | null): string => {
+  const s = String(t ?? "")
+    .toLowerCase()
+    .trim()
+    .replace(/[\s-]+/g, "_");
+  if (s === "xp_points" || s === "xp_point") return "xp";
+  if (s === "token") return "tokens";
+  if (s === "cash" || s === "bonus_offer") return "bonus_cash";
+  return s || "unknown";
+};
+
+/**
+ * Apply a granted reward's effect to the player. `xp` runs through the
+ * gamification engine so level/rank/xp_to_next stay consistent;
+ * `tokens` updates the column; everything else accumulates under
+ * `transactional_data[<type>]` so manual / shop rewards still get
+ * recorded against the player without needing new columns.
+ */
+export const claimRewardService = async (
+  playerId: string,
+  rewardId: string,
+  actor?: string | null
+) => {
+  const player = await playerRepository.findByPk(playerId);
+  if (!player) throw new AppError("Player not found", 404);
+
+  const reward = await playerRewardRepository.findByPk(rewardId);
+  if (!reward || reward.player_id !== playerId) {
+    throw new AppError("Reward not found", 404);
+  }
+  if (reward.status !== "IN_PROGRESS") {
+    throw new AppError(
+      `Reward is already ${reward.status.toLowerCase()}`,
+      409
+    );
+  }
+
+  const amount = parseRewardAmount(reward.reward);
+  const type = normalizeRewardType(reward.reward_type);
+
+  let updatedPlayer: Player = player;
+  if (amount > 0) {
+    if (type === "xp") {
+      const r = await applyXpToPlayer(player, amount);
+      updatedPlayer = r.player;
+    } else if (type === "tokens") {
+      updatedPlayer =
+        ((await playerRepository.updateByPk(player.id, {
+          tokens: Number(player.tokens ?? 0) + amount,
+        } as Partial<Player["_creationAttributes"]>)) as Player) ?? player;
+    } else {
+      const td =
+        (player.transactional_data as Record<string, unknown> | null) ?? {};
+      const current = Number((td[type] as number | undefined) ?? 0);
+      updatedPlayer =
+        ((await playerRepository.updateByPk(player.id, {
+          transactional_data: { ...td, [type]: current + amount },
+        } as Partial<Player["_creationAttributes"]>)) as Player) ?? player;
+    }
+  }
+
+  const updatedReward = await playerRewardRepository.updateByPk(rewardId, {
+    status: "GRANTED",
+    granted_date: reward.granted_date ?? new Date(),
+  });
+
+  await playerLogRepository.create({
+    player_id: playerId,
+    action: "Reward Claimed",
+    detail: `${reward.reward_type ?? "—"}${
+      reward.reward ? ` — ${reward.reward}` : ""
+    }`,
+    actor: actor ?? null,
+  });
+
+  return {
+    reward: updatedReward,
+    player: {
+      id: updatedPlayer.id,
+      xp_points: Number(updatedPlayer.xp_points ?? 0),
+      tokens: Number(updatedPlayer.tokens ?? 0),
+      level: Number(updatedPlayer.level ?? 1),
+      rank_name: updatedPlayer.rank_name ?? null,
+      transactional_data:
+        (updatedPlayer.transactional_data as Record<string, unknown> | null) ??
+        {},
+    },
+  };
+};

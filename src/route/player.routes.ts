@@ -8,6 +8,7 @@ import {
   getCampaignHistory,
   getRewards,
   addManualReward,
+  claimReward,
   getLogs,
   getPlayerByEmail,
   addPlayerXpByEmail,
@@ -87,6 +88,14 @@ router.post(
   validate(playerIdParamSchema, "params"),
   validate(manualRewardSchema, "body"),
   addManualReward
+);
+
+// End-user "Claim" action is initiated by a service backend
+// (e.g. game-platform → gamru), so the route is gated by clientAuth.
+router.post(
+  "/:id/rewards/:rewardId/claim",
+  clientAuth,
+  claimReward
 );
 
 router.get("/:id/logs", auth, validate(playerIdParamSchema, "params"), getLogs);
