@@ -210,7 +210,11 @@ const translateCondition = (cond: RuleCondition): WhereOptions | null => {
 
     case "tags": {
       if (!hasValue(value)) return null;
-      const contains = { [column]: { [Op.contains]: [value] } };
+      // Tags are stored as canonical tokens (lowercase, underscores). Normalize
+      // the rule value so a humanized pick like "New Player" still matches the
+      // stored "new_player" token instead of silently matching nobody.
+      const tag = String(value).trim().toLowerCase().replace(/\s+/g, "_");
+      const contains = { [column]: { [Op.contains]: [tag] } };
       clause = cond.op === "not_includes" ? { [Op.not]: contains } : contains;
       break;
     }

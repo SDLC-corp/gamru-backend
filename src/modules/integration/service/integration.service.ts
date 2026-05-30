@@ -11,13 +11,15 @@ import {
   resolveProgress,
   newlyRewardedRungs,
 } from "./gam.engine";
+import { recomputeDynamicSegmentCounts } from "../../segment/service/segment.service";
 import type { ResolvedClient } from "../../../types/request.type";
 
 export type SyncEventType =
   | "USER_REGISTERED"
   | "XP_AWARDED"
   | "LEVEL_UP"
-  | "RANK_UP";
+  | "RANK_UP"
+  | "DEPOSIT_MADE";
 
 export interface SyncEvent {
   /** Stable, globally-unique id used for idempotency. */
@@ -160,6 +162,48 @@ export const applyXpToPlayer = async (
   return { player: updated, prevXp, nextXp, progress };
 };
 
+/**
+ * Apply a deposit to a player's CRM record. The wallet balance itself lives
+ * in the game platform's own DB (the source of truth); here we only record
+ * the deposit summary for analytics and — crucially — move the player out of
+ * the "no_deposit" audience into "depositor" so the No-deposit segment empties
+ * and the Deposited segment fills on the player's first deposit.
+ */
+const applyDeposit = async (
+  player: Player,
+  amount: number
+): Promise<Player> => {
+  // Tags: depositor and no_deposit are mutually exclusive. Keep every other
+  // tag (e.g. new_player, vip) untouched.
+  const tags = new Set<string>(
+    Array.isArray(player.tags) ? (player.tags as string[]) : []
+  );
+  tags.add("depositor");
+  tags.delete("no_deposit");
+
+  // Deposit summary, stored alongside the player's other transactional data.
+  const td =
+    (player.transactional_data as Record<string, unknown> | null) ?? {};
+  const depositCount = Number((td["Deposit Count"] as number | undefined) ?? 0) + 1;
+  const totalDeposit =
+    Number((td["Total Deposit"] as number | undefined) ?? 0) + amount;
+  const now = new Date().toISOString();
+
+  const updated = (await playerRepository.updateByPk(player.id, {
+    tags: Array.from(tags),
+    transactional_data: {
+      ...td,
+      "Deposit Count": depositCount,
+      "Total Deposit": totalDeposit,
+      "Last Deposit Amount": amount,
+      "Last Deposit Date": now,
+      ...(depositCount === 1 ? { "First Deposit Date": now } : {}),
+    },
+  } as Partial<Player["_creationAttributes"]>)) as Player;
+
+  return updated;
+};
+
 const summarize = (p: Player): ApplyResult["player"] => ({
   id: p.id,
   xp_points: Number(p.xp_points ?? 0),
@@ -236,6 +280,38 @@ export const applyEvent = async (
       meta: metaWithClient,
     });
     return { applied: true, player: summarize(player) };
+  }
+
+  // ── DEPOSIT_MADE ─────────────────────────────────────────────────
+  // Move the player from the "no_deposit" segment into "depositor" and
+  // record the deposit. The wallet balance is owned by the game platform.
+  if (event.event_type === "DEPOSIT_MADE") {
+    const amount = Number(event.amount) || 0;
+    const updated = await applyDeposit(player, amount);
+
+    await playerLogRepository.create({
+      player_id: player.id,
+      action: "Deposit",
+      detail: `Deposit of ${amount} from ${client?.name ?? origin}`,
+      actor,
+    });
+
+    await GamXpTransaction.create({
+      player_id: player.id,
+      event_id: event.event_id,
+      event_type: event.event_type,
+      external_id: event.external_id,
+      amount,
+      balance_after: Number(updated.xp_points ?? 0),
+      meta: metaWithClient,
+    });
+
+    // The player's tags changed, so segment audiences are now stale.
+    void recomputeDynamicSegmentCounts().catch((err) =>
+      console.error("Segment recount after deposit failed:", err)
+    );
+
+    return { applied: true, player: summarize(updated) };
   }
 
   // ── XP_AWARDED ───────────────────────────────────────────────────

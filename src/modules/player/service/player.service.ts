@@ -493,12 +493,17 @@ export const createPlayerService = async (input: PlayerInput) => {
   });
   if (existing) throw new AppError("player_id already exists", 409);
   const seeded = await applyInitialGamification(input);
-  // Every brand-new player joins the "new_player" segment tag unless the
-  // caller explicitly supplied tags (e.g. a CRM import). This is what makes
-  // game-platform registrations land in the "New players" segment count.
+  // Every brand-new player joins the "new_player" + "no_deposit" segment
+  // tags unless the caller explicitly supplied tags (e.g. a CRM import).
+  // This is what makes game-platform registrations land in the "New players"
+  // and "No deposit" segment counts; the first deposit later swaps
+  // "no_deposit" for "depositor" (see integration.service applyDeposit).
   const tagged: PlayerInput = {
     ...seeded,
-    tags: seeded.tags && seeded.tags.length ? seeded.tags : ["new_player"],
+    tags:
+      seeded.tags && seeded.tags.length
+        ? seeded.tags
+        : ["new_player", "no_deposit"],
   };
   const player = await playerRepository.create(
     withBuckets(tagged) as Partial<Player["_creationAttributes"]>

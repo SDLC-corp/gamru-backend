@@ -3,7 +3,7 @@ import Joi from "joi";
 export const syncEventSchema = Joi.object({
   event_id: Joi.string().trim().min(1).max(180).required(),
   event_type: Joi.string()
-    .valid("USER_REGISTERED", "XP_AWARDED", "LEVEL_UP", "RANK_UP")
+    .valid("USER_REGISTERED", "XP_AWARDED", "LEVEL_UP", "RANK_UP", "DEPOSIT_MADE")
     .required(),
   external_id: Joi.string().trim().min(1).max(120).required(),
   origin: Joi.string().trim().max(40).optional(),
