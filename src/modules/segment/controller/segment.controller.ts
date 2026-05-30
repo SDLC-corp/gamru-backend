@@ -9,7 +9,12 @@ import {
   restoreSegmentService,
   deleteSegmentService,
   listSegmentCreatorsService,
+  listSegmentTagsService,
+  previewSegmentService,
+  getSegmentFieldsService,
+  getSegmentPlayersService,
 } from "../service/segment.service";
+import { SegmentContent } from "../service/segment-rules";
 import { errorResponse, successResponse } from "../../../utils/responseHandler";
 import { AppError } from "../../../utils/AppError";
 
@@ -73,6 +78,46 @@ export const getSegmentCreators = async (
   }
 };
 
+export const getSegmentFields = async (
+  _req: AuthRequest,
+  res: Response,
+  _next: NextFunction
+) => {
+  try {
+    const data = getSegmentFieldsService();
+    successResponse(res, 200, "Segment fields fetched successfully", data);
+  } catch (error) {
+    handle(res, error, "Failed to fetch segment fields");
+  }
+};
+
+export const getSegmentTags = async (
+  _req: AuthRequest,
+  res: Response,
+  _next: NextFunction
+) => {
+  try {
+    const data = await listSegmentTagsService();
+    successResponse(res, 200, "Segment tags fetched successfully", data);
+  } catch (error) {
+    handle(res, error, "Failed to fetch segment tags");
+  }
+};
+
+export const previewSegment = async (
+  req: AuthRequest,
+  res: Response,
+  _next: NextFunction
+) => {
+  try {
+    const content = (req.body?.content ?? req.body) as SegmentContent | null;
+    const data = await previewSegmentService(content);
+    successResponse(res, 200, "Audience previewed successfully", data);
+  } catch (error) {
+    handle(res, error, "Failed to preview audience");
+  }
+};
+
 export const getSegment = async (
   req: AuthRequest,
   res: Response,
@@ -83,6 +128,21 @@ export const getSegment = async (
     successResponse(res, 200, "Segment fetched successfully", data);
   } catch (error) {
     handle(res, error, "Failed to fetch segment");
+  }
+};
+
+export const getSegmentPlayers = async (
+  req: AuthRequest,
+  res: Response,
+  _next: NextFunction
+) => {
+  try {
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 10);
+    const data = await getSegmentPlayersService(req.params.id, page, limit);
+    successResponse(res, 200, "Segment players fetched successfully", data);
+  } catch (error) {
+    handle(res, error, "Failed to fetch segment players");
   }
 };
 

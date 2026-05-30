@@ -1,4 +1,5 @@
-import { Op, WhereOptions } from "sequelize";
+import { Op, QueryTypes, WhereOptions } from "sequelize";
+import sequelize from "../../../config/db";
 import { BaseRepository } from "../../../core/models/base.repository";
 import Player from "./player.model";
 import PlayerCampaignHistory from "./player-campaign-history.model";
@@ -56,6 +57,18 @@ class PlayerRepository extends BaseRepository<Player> {
 
   async paginatePlayers(page: number, limit: number, filter: PlayerFilter) {
     return this.paginate(page, limit, this.buildWhere(filter));
+  }
+
+  /** Distinct tag values across all players — feeds the segment Tag dropdown. */
+  async listDistinctTags(): Promise<string[]> {
+    const rows = await sequelize.query<{ tag: string }>(
+      `SELECT DISTINCT elem AS tag
+         FROM players, jsonb_array_elements_text(players.tags) AS elem
+        WHERE players.tags IS NOT NULL
+        ORDER BY tag`,
+      { type: QueryTypes.SELECT }
+    );
+    return rows.map((r) => r.tag).filter(Boolean);
   }
 }
 

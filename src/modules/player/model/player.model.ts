@@ -46,6 +46,9 @@ export class Player extends Model<
   declare rank_name: CreationOptional<string | null>;
   declare tokens: CreationOptional<number>;
 
+  // ─── CRM segmentation tags (e.g. "new_player", "vip") ────────────
+  declare tags: CreationOptional<string[] | null>;
+
   // ─── Flexible attribute buckets (rendered as cards) ──────────────
   declare consents: CreationOptional<Record<string, unknown> | null>;
   declare personalization: CreationOptional<Record<string, unknown> | null>;
@@ -149,6 +152,10 @@ Player.init(
     tokens: {
       type: DataTypes.FLOAT,
       defaultValue: 0,
+    },
+    tags: {
+      type: DataTypes.JSONB,
+      allowNull: true,
     },
     consents: {
       type: DataTypes.JSONB,

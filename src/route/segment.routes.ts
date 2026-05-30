@@ -4,6 +4,10 @@ import {
   paginateSegments,
   getSegment,
   getSegmentCreators,
+  getSegmentFields,
+  getSegmentTags,
+  getSegmentPlayers,
+  previewSegment,
   updateSegment,
   archiveSegment,
   restoreSegment,
@@ -25,7 +29,20 @@ router.get("/paginate", auth, paginateSegments);
 
 router.get("/creators", auth, getSegmentCreators);
 
+router.get("/fields", auth, getSegmentFields);
+
+router.get("/tags", auth, getSegmentTags);
+
+router.post("/preview", auth, previewSegment);
+
 router.get("/:id", auth, validate(segmentIdParamSchema, "params"), getSegment);
+
+router.get(
+  "/:id/players",
+  auth,
+  validate(segmentIdParamSchema, "params"),
+  getSegmentPlayers
+);
 
 router.post(
   "/update-by/:id",

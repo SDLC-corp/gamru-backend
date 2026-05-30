@@ -17,6 +17,7 @@ import {
 } from "../../integration/service/gam.engine";
 import { applyXpToPlayer } from "../../integration/service/integration.service";
 import { gamificationModels } from "../../gamification/shared/gamification.model";
+import { recomputeDynamicSegmentCounts } from "../../segment/service/segment.service";
 
 type Json = Record<string, unknown>;
 
@@ -73,6 +74,7 @@ export interface PlayerInput {
   xp_to_next?: number;
   rank_name?: string | null;
   tokens?: number;
+  tags?: string[] | null;
   consents?: Record<string, unknown> | null;
   personalization?: Record<string, unknown> | null;
   player_data?: Record<string, unknown> | null;
@@ -491,9 +493,24 @@ export const createPlayerService = async (input: PlayerInput) => {
   });
   if (existing) throw new AppError("player_id already exists", 409);
   const seeded = await applyInitialGamification(input);
-  return playerRepository.create(
-    withBuckets(seeded) as Partial<Player["_creationAttributes"]>
+  // Every brand-new player joins the "new_player" segment tag unless the
+  // caller explicitly supplied tags (e.g. a CRM import). This is what makes
+  // game-platform registrations land in the "New players" segment count.
+  const tagged: PlayerInput = {
+    ...seeded,
+    tags: seeded.tags && seeded.tags.length ? seeded.tags : ["new_player"],
+  };
+  const player = await playerRepository.create(
+    withBuckets(tagged) as Partial<Player["_creationAttributes"]>
   );
+
+  // Dynamic segment counts are now stale — refresh them in the background.
+  // Best-effort: a recount failure must never block player creation.
+  void recomputeDynamicSegmentCounts().catch((err) =>
+    console.error("Failed to recompute segment counts after player create:", err)
+  );
+
+  return player;
 };
 
 export const updatePlayerService = async (
